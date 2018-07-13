@@ -1,0 +1,10 @@
+rem %1 dbname %2 expFile %3 dbip %4 Uid %5 pwd 
+set lv1=%1
+set lv2=%2
+set lv3=%3
+set lv4=%4
+set lv5=%5
+
+ set va1=" select case when a.Wkkm='62' then '70' when a.wkkm='63' then '71' else rtrim(a.Wkkm) end ,'010',a.Kcid ,'imp',null from %lv1%..wkkcdzb a "
+ bcp %va1%  queryout %lv2% -c -t, -r\n    -S%lv3% -U%lv4% -P%lv5%
+
