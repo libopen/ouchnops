@@ -5,8 +5,8 @@ import time
 #import redis
 #import expParameter
 import os,sys
-
-BATPATH='d:/migration/exp_script/'
+## init mssql script path and csv file path
+BATPATH='d:/migration/exp_script/'  
 SAVEPATH='d:/server183/support/'
 DBCENTER={'uid':'sa','pwd':'!!!WKSdatatest!!!','dbid':'course20170719','host':'202.205.160.183'}
 DBZHJ={'uid':'sa','pwd':'!!!WKSdatatest!!!','dbid':'zhejiang0717','host':'202.205.160.177'}
@@ -69,7 +69,7 @@ def main(exp,expdb,targetcsvpath):
     expqueue=[]
 	
     batlist = exp.split('-')
-    batpath='g:/migration/exp_script/'
+    batpath=''
     csvpath="{csvRoot}{csvpath}/".format(csvRoot=SAVEPATH,csvpath=targetcsvpath)
     for batitem in batlist:
 	    expbatFile="{batpath}{batname}.bat".format(batpath=BATPATH,batname=batitem)
