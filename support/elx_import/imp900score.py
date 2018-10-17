@@ -95,7 +95,7 @@ def expElc(csvname,xlsfile):
         
         
                 for sh in wb.sheets():
-                        if sh.nrows==0:
+                        if sh.nrows==0 :
                                 print("{} is empty".format(sh.name))
                                 continue
                         # deal with mutilplines
@@ -104,9 +104,9 @@ def expElc(csvname,xlsfile):
                         bColOrder=True
                         rowcollist=sh.row_values(0)
                         for i in range(len(col_elc)):
-                                if col_elc[i] not in rowcollist[i]:
+                                if rowcollist[i] not in str(col_elc[i]).split(','):
                                         bColOrder=False
-                                        print ("sheet:{} {}'s {} is not current order".format(xlsfile,sh.name,col_elc[i]))
+                                        print ("sheet:{} {}'s number:{} column,{} is not match {}".format(xlsfile,sh.name,i,col_elc[i],rowcollist[i]))
                                         break
                         if bColOrder==False:# if Column's order is not current then break and get next sheet
                                 continue
@@ -199,9 +199,9 @@ def expScore(csvname,xlsfile,papercodetype='4'):
                         rowcollist=sh.row_values(0) #get the column's name from the first row
                         for i in range(len(col_score)):
                                 rowcollist[i]=rowcollist[i].replace('\n','')
-                                if col_score[i] not in rowcollist[i]:
+                                if  rowcollist[i] not in str(col_score[i]).split(','):
                                         bColOrder=False
-                                        print ("sheet:{} {}'s {} is not current order".format(xlsfile,sh.name,col_score[i]))
+                                        print ("sheet:{} {}'s number:{} column,{} is not match {}".format(xlsfile,sh.name,i,col_score[i],rowcollist[i]))
                                         break
                         if bColOrder==False:  # if the order of column is not current ,return to get next sheet
                                 continue
@@ -218,18 +218,21 @@ def expScore(csvname,xlsfile,papercodetype='4'):
                                             
                                 rowlist =[str(item).replace('\n',' ').replace(',',' ').strip() for item in sh.row_values(rownum)]
                                 #print("{},{}".format(rownum,rowlist))
-                                csvlist[0]="1" # SN
-                                csvlist[1]=rowlist[9][:3] #segmentcode
-                                csvlist[2]=rowlist[9][:5] #collegecode
-                                #get info by dic
-
+                                # get current student's info dicts
                                 if removelast(rowlist[0]) not in studict.keys():
                                         bvalid=False
                                         print("{}:{},{}:{} no find".format(sh.name,rownum+1,rowlist[0],rowlist[9]))
+
                                 else:
                                         #dic = eval(infodic[1])
-                                        dic=studict[removelast(rowlist[0])]
-                                        csvlist[3]=dic['CLASSCODE'] #classcode
+                                        # get current student's info dicts
+                                        dic_current=studict[removelast(rowlist[0])]
+                                        csvlist[0]="1" # SN
+                                        csvlist[1]=dic_current['LEARNINGCENTERCODE'][:3] #segmentcode
+                                        csvlist[2]=dic_current['LEARNINGCENTERCODE'][:5] #collegecode
+                                        #get info by dic
+                                        
+                                        csvlist[3]=dic_current['CLASSCODE'] #classcode
                                         csvlist[4]=rowlist[2].rstrip('0').rstrip('.') #examPlanCode
                                         csvlist[5]=str(rowlist[3].rstrip('0').rstrip('.')).zfill(2) #ExamCategory
                                         csvlist[6]=examunitlist[rowlist[10]]
@@ -241,7 +244,7 @@ def expScore(csvname,xlsfile,papercodetype='4'):
                                                 csvlist[8]=newPaperCode(oldpapercode) if len(oldpapercode)==4 else oldpapercode
                                         else:    
                                                 csvlist[8]=str(removelast(rowlist[4])).zfill(5)
-                                        csvlist[9]=dic['LEARNINGCENTERCODE'] #learningcentercode
+                                        csvlist[9]=dic_current['LEARNINGCENTERCODE'] #learningcentercode
                                         csvlist[10]=removelast(rowlist[0]) #studentcode
                                         scorelist=()
                                         #print("{key}{val}".format(key=rowlist[5],val=getRedis(rowlist[5])))
@@ -288,7 +291,7 @@ def expSignup(csvname,xlsfile,papercodetype='4'):
        #filename is format that is name such as elc90* or signup90* or score90* 
        #deal with numeric
         studict=getstuinfoDic()
-        col_sign=['学号','考试代码','课程ID','学校代码','考试单位类型','考试类别','试卷代码']
+        col_sign=['学号','考试代码','课程ID','学校代码,教学点代码','考试单位类型','考试类别,考试类别代码','试卷代码,试卷号']
         
         batlist={"秋季":"09","春季":"03"}
         examunitlist={"中央":"1","省":"2","国开":"1","省开":"2"}
@@ -308,15 +311,10 @@ def expSignup(csvname,xlsfile,papercodetype='4'):
                         bColOrder=True
                         rowcollist=sh.row_values(0)
                         for i in range(len(col_sign)):
-                                if i==len(col_sign)-1:
-                                        if col_sign[i][0:2]!=rowcollist[i][0:2]:
-                                                bColOrder=False
-                                                print ("sheet:{} {}'s {} is not current order".format(xlsfile,sh.name,col_sign[i]))
-                                else:                
-                                        if col_sign[i] not in rowcollist[i]:
-                                                bColOrder=False
-                                                print ("sheet:{} {}'s {} is not current order".format(xlsfile,sh.name,col_sign[i]))
-                                                break
+                                if  rowcollist[i] not in str(col_sign[i]).split(','):
+                                        bColOrder=False
+                                        print ("sheet:{} {}'s number:{} column,{} is not match {}".format(xlsfile,sh.name,i,col_sign[i],rowcollist[i]))
+                                        break
                         if bColOrder==False:
                                 continue
                         lins = [x for x in range(1,sh.nrows)]
@@ -325,35 +323,36 @@ def expSignup(csvname,xlsfile,papercodetype='4'):
                         for rownum in lins:
                                 bvalid=True
                                 csvlist=["" for x in range(27)]
-                                            
                                 rowlist =[str(item).replace('\n',' ').replace(',',' ').strip() for item in sh.row_values(rownum)]
                                 #print("{},{}".format(rownum,rowlist))
-                                csvlist[0]="1" # SN
-                                csvlist[1]=rowlist[1][:6] #exambatchcode
-                                csvlist[2]=rowlist[1][:6] #exambatchcode
-                                csvlist[3]=rowlist[5]     #ExamCategory
-                                # csvlist[4] accessmode
-                                # csvlist[5] examsitecode
-                                # csvlist[6] examsessionunit
-                                if  rowlist[6]!='':
-                                        if papercodetype=='4':                 
-                                                csvlist[7]=newPaperCode(removelast(str(rowlist[6]))) #exampapercode
-                                        else: 
-                                                csvlist[7]=str(removelast(rowlist[6])).zfill(5)
-                           
-                                #csvlist[8] # exampapermemo
-                                csvlist[9]=str(removelast(rowlist[2])).zfill(5) #courseid
-                                #csvlist[10] tcpcode
-                                csvlist[11]=rowlist[3][:3] #segmentcode
-                                csvlist[12]=rowlist[3][:5] #collegecode
-                                csvlist[13]=removelast(rowlist[3])     #learningcentercode
-                                #get info by redis
+
                                 if removelast(rowlist[0]) not in studict.keys():
                                         bvalid=False
                                         print("{}:{},{},{} no find".format(sh.name,rownum,rowlist[0],rowlist[3]))
                                 else:
-                                        dic=studict[removelast(rowlist[0])]
-                                        csvlist[14]=dic['CLASSCODE'] #classcode
+                                                                        # get current student's dict by first row 
+                                        dic_current=studict[removelast(rowlist[0])]
+                                        csvlist[0]="1" # SN
+                                        csvlist[1]=rowlist[1][:6] #exambatchcode
+                                        csvlist[2]=rowlist[1][:6] #exambatchcode
+                                        csvlist[3]=rowlist[5]     #ExamCategory
+                                        # csvlist[4] accessmode
+                                        # csvlist[5] examsitecode
+                                        # csvlist[6] examsessionunit
+                                        if  rowlist[6]!='':
+                                                if papercodetype=='4':                 
+                                                        csvlist[7]=newPaperCode(removelast(str(rowlist[6]))) #exampapercode
+                                                else: 
+                                                        csvlist[7]=str(removelast(rowlist[6])).zfill(5)
+                                   
+                                        #csvlist[8] # exampapermemo
+                                        csvlist[9]=str(removelast(rowlist[2])).zfill(5) #courseid
+                                        #csvlist[10] tcpcode
+                                        csvlist[11]=removelast(dic_current['LEARNINGCENTERCODE'])[:3] #segmentcode
+                                        csvlist[12]=removelast(dic_current['LEARNINGCENTERCODE'])[:5] #collegecode
+                                        csvlist[13]=removelast(dic_current['LEARNINGCENTERCODE'])     #learningcentercode
+                                        #get info by redis      
+                                        csvlist[14]=dic_current['CLASSCODE'] #classcode
                                         csvlist[15]=removelast(rowlist[0]) #studentcode
                                         csvlist[16]=examunitlist[rowlist[4]] #examunit
                                         csvlist[17]='elximp'
@@ -370,7 +369,7 @@ def expSignup(csvname,xlsfile,papercodetype='4'):
                                         
                                         #print("{key}{val}".format(key=rowlist[5],val=getRedis(rowlist[5])))
                                  
-                            
+                              
                                 iTotal+=1
                                 if bvalid==True:
                                         iValid+=1
