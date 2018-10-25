@@ -6,8 +6,8 @@ declare
 begin
 --select * from 
 for v_r in (
- select distinct learningcentercode ,tcpcode,substr(learningcentercode,1,3) orgcode from eas_schroll_student a where batchcode='201809'
-and substr(a.learningcentercode,1,3)='805' and not exists(select * from eas_tcp_execution 
+ select distinct learningcentercode ,tcpcode,substr(learningcentercode,1,3) orgcode from eas_schroll_student a where batchcode='201809' ---check
+and substr(a.learningcentercode,1,3)='805' and not exists(select * from eas_tcp_execution                 ---check
 where learningcentercode=a.learningcentercode and tcpcode=a.tcpcode)
 and exists(select * from eas_tcp_implementation where orgcode=substr(a.learningcentercode,1,3) and tcpcode=a.tcpcode and impstate='1')
 --and tcpcode='180901411020102' and learningcentercode='3200901'
