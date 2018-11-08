@@ -1,0 +1,23 @@
+step 1 
+#把配置信息存储到redis中
+expConfig.py 
+step 2
+# 读取配置信息多线程执行下载角本
+expCpsByThread.py
+
+#expBybat.py
+一个执行windows 下bat命令的类
+
+#expParameter.py
+一个读取redis配置信息生成执行命令的列表类
+
+#configMigera.py
+利用rabbitmq 服务执行下载的程序，由于下载时间可能超过30分钟消息服务会自动中止，
+
+
+#makepath.py
+提前生成导出的所有目录和所有导出空文件，生成合并空文件的bat
+
+csv2oracle.py
+批量插入oracle的例子
+  
