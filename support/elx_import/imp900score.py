@@ -1,21 +1,25 @@
 import xlrd
 import csv
-import os
+import os,uuid
 import sys 
 from progressbar import printProgress
 import pandas as pd
 import numpy as np
 def newPaperCode(oldCode):
-        if oldCode!='':
-                top2=oldCode[:2]
-                if (top2=='27') or (top2=='49') :
-                    return "4{}".format(oldCode)
-                elif int(top2)<20:
-                    return "1{}".format(oldCode)
-                elif int(top2)>49:
-                    return "5{}".format(oldCode)
-                else:
-                    return "2{}".format(oldCode)
+        try:
+                if oldCode!='':
+                        top2=oldCode[:2]
+                        if (top2=='27') or (top2=='49') :
+                            return "4{}".format(oldCode)
+                        elif int(top2)<20:
+                            return "1{}".format(oldCode)
+                        elif int(top2)>49:
+                            return "5{}".format(oldCode)
+                        else:
+                            return "2{}".format(oldCode)
+        except:
+                raise ValueError
+                
 def getRedis(val,code='utf'):
     if val=='':
         return ('','')
@@ -117,7 +121,7 @@ def expElc(csvname,xlsfile):
                         for rownum in lins:
                  
                                 bvalid=True                
-                                csvlist=["1" for x in range(18)]
+                                csvlist=["1" for x in range(20)]
                                 #all conver to string and remove return char and             
                                 rowlist =[str(item).replace('\n',' ').replace(',',' ').strip() for item in sh.row_values(rownum)  ]
                                 
@@ -130,7 +134,7 @@ def expElc(csvname,xlsfile):
                                 else:
                                         #dic = eval(stuinfo[1])
                                         #print("{},{}".format(rowlist[0],is_number(rowlist[0])))
-                                        csvlist[1]="{}{}".format(rowlist[3][:4],batlist[rowlist[4]])
+                                        csvlist[1]="{}{}".format(rowlist[3][:4],batlist[rowlist[4]]) #batchcode
                                         csvlist[2]=removelast(rowlist[0]) #studentcode
                                         csvlist[3]=str(removelast(rowlist[2])).zfill(5)  #courseid                                        
                                         dic=studict[removelast(rowlist[0])]
@@ -140,9 +144,11 @@ def expElc(csvname,xlsfile):
                                         csvlist[9]='' #operatetime
                                         csvlist[10]='elximp' #operator
                                         csvlist[12]='' #comfirmtime
-                                        csvlist[13]=removelast(rowlist[6])
+                                        csvlist[13]=removelast(rowlist[6]) #current
                                         csvlist[14]=dic['SPYCODE']
                                         csvlist[17]=dic['STUDENTID']
+                                        csvlist[18]=uuid.uuid4()
+                                        csvlist[19]='end'
                                        
                                 iTotal+=1
                                 if bvalid==True:
@@ -241,7 +247,12 @@ def expScore(csvname,xlsfile,papercodetype='4'):
                                                 oldpapercode=str(removelast(rowlist[4])) # if papercode 's lenght is 3 or 4
                                                 if len(oldpapercode)<4:
                                                         oldpapercode=oldpapercode.zfill(4)
-                                                csvlist[8]=newPaperCode(oldpapercode) if len(oldpapercode)==4 else oldpapercode
+                                                try:
+                                                        csvlist[8]=newPaperCode(oldpapercode) if len(oldpapercode)==4 else oldpapercode
+                                                except(ValueError):
+                                                        print("papercode error: line number {}".format(rownum+1))
+                                                        pass
+                                                        
                                         else:    
                                                 csvlist[8]=str(removelast(rowlist[4])).zfill(5)
                                         csvlist[9]=dic_current['LEARNINGCENTERCODE'] #learningcentercode
@@ -251,12 +262,16 @@ def expScore(csvname,xlsfile,papercodetype='4'):
                                      
                                         #get score by scoredic
                                         #print (rowlist[5])
-                                        if rowlist[5]!='':
+                                        if rowlist[5]!='' and str(rowlist[5]).upper()!='NULL':
                                                 csvlist[12]=score2round(rowlist[5])# PaperScoreCode
                                                 csvlist[11]=scoredic[csvlist[12]] #PaperScore
-                                        if rowlist[6]!='':
+                                        if rowlist[6]!=''  and str(rowlist[6]).upper()!='NULL':
                                                 csvlist[14]=score2round(rowlist[6]) #xkscorecode
-                                                csvlist[13]=scoredic[csvlist[14]] #XKscore
+                                                try:
+                                                        csvlist[13]=scoredic[csvlist[14]] #XKscore
+                                                except:
+                                                        print("score error line:{}".format(rownum+1))
+                                                        pass
                                         #xk scale
                                         valscale='0'
                                         #print (rowlist[7]) 
@@ -269,9 +284,13 @@ def expScore(csvname,xlsfile,papercodetype='4'):
                                                 valscale=rowlist[7].rstrip('%')
                                         csvlist[15]=valscale  #xkscale
                                         # composescore
-                                        if rowlist[8]!='':
+                                        if rowlist[8]!=''  and str(rowlist[8]).upper()!='NULL':
                                                 csvlist[17]=score2round(rowlist[8])           #composescorecode
-                                                csvlist[16]=scoredic[csvlist[17]] #composescore
+                                                try:
+                                                        csvlist[16]=scoredic[csvlist[17]] #composescore
+                                                except:
+                                                        print("composescore error line:{}".format(rownum+1))
+                                                        pass
                     
                     #csvlist[18] #composeDate
                     #csvlist[19] #publistdate
@@ -340,8 +359,12 @@ def expSignup(csvname,xlsfile,papercodetype='4'):
                                         # csvlist[5] examsitecode
                                         # csvlist[6] examsessionunit
                                         if  rowlist[6]!='':
-                                                if papercodetype=='4':                 
-                                                        csvlist[7]=newPaperCode(removelast(str(rowlist[6]))) #exampapercode
+                                                if papercodetype=='4':  
+                                                        try:
+                                                                csvlist[7]=newPaperCode(removelast(str(rowlist[6]))) #exampapercode
+                                                        except(ValueError):
+                                                                print("papercode error line number{}".format(rownum+1))
+                                                                pass
                                                 else: 
                                                         csvlist[7]=str(removelast(rowlist[6])).zfill(5)
                                    
@@ -443,7 +466,76 @@ def expStatus2(csvname,statuscsv,scorecsv):
         #df[2]=df[1].apply(lambda value:'0'*(5-len(str(value)))+str(value))
         #df.courseid=df.courseid.astype(str)
         #df.courseid=df.courseid.apply(lamdba value:'0'*(5-len(value))+value)
-   
+        
+def expNetExam(csvname,xlsfile):
+       #filename is format that is name such as elc90* or signup90* or score90* 
+       #deal with numeric
+        studict=getstuinfoDic()
+        col_elc=['kssj','wkkm','cjdm','xh','dwdm']
+        batlist={"秋季":"09","春季":"03","秋":"09","春":"03"}
+        examunitlist={"中央":"1","省":"2"}
+        rnNum =[0,1,2,3,4,5] # deal \n
+        intnum=[11,12,13,14,15,16,17,23,24]
+        blknum=[18,19,20,21,22]
+    
+    
+        with open(csvname,'w',newline='',encoding='gb2312') as csvfile:
+                wr =  csv.writer(csvfile,quoting=csv.QUOTE_NONE,quotechar='',escapechar='\\')
+                wb = xlrd.open_workbook(xlsfile)
+                tmpCol2=""
+                tmpCol3=""
+                tmpCol4=""
+                tmpCol5=""
+        
+        
+                for sh in wb.sheets():
+                        if sh.nrows==0 :
+                                print("{} is empty".format(sh.name))
+                                continue
+                        # deal with mutilplines
+                        # from the second line 
+                        # is columns order is current?
+                        bColOrder=True
+                        rowcollist=sh.row_values(0)
+                        for i in range(len(col_elc)):
+                                if str(rowcollist[i]).lower() not in str(col_elc[i]).split(','):
+                                        bColOrder=False
+                                        print ("sheet:{} {}'s number:{} column,{} is not match {}".format(xlsfile,sh.name,i,col_elc[i],rowcollist[i]))
+                                        break
+                        if bColOrder==False:# if Column's order is not current then break and get next sheet
+                                continue
+              
+                        lins = [x for x in range(1,sh.nrows)]
+                        iTotal=0
+                        iValid=0
+                        for rownum in lins:
+                 
+                                bvalid=True                
+                                csvlist=["1" for x in range(6)]
+                                #all conver to string and remove return char and             
+                                rowlist =[str(item).replace('\n',' ').replace(',',' ').strip() for item in sh.row_values(rownum)  ]
+                                
+                                #get info by redis
+                                #stuinfo = getRedis(rowlist[0])
+                                # find studentcode in studict 
+                                if  1!=1:#暂时不判断学号是否存在#removelast(rowlist[0]) not in studict.keys():
+                                        bvalid=False
+                                        print("{}:{},{},{}, no find".format(sh.name,rownum,rowlist[0],rowlist[1]))
+                                else:
+                                        #dic = eval(stuinfo[1])
+                                        #print("{},{}".format(rowlist[0],is_number(rowlist[0])))
+                                        csvlist[1]=removelast(rowlist[0]) #unifBatchCode
+                                        csvlist[2]=removelast(rowlist[1]) #subjectcode
+                                        csvlist[3]=removelast(rowlist[3])  #studentcode
+                                        csvlist[4]=removelast(rowlist[2]) #scorecode
+                                        #csvlist[5] #IsRecord
+                                       
+                                iTotal+=1
+                                if bvalid==True:
+                                        iValid+=1
+                                        wr.writerow(csvlist)
+                        print("{}:Totla{},valid{}".format(sh.name,iTotal,iValid))
+        csvfile.close()        
  
 def main():
         global re
@@ -463,7 +555,8 @@ def main():
         elif basename[:6]=='status':
                 #expStatus("data_{}.csv".format(basename),xlsfile)
                 expStatus2("./export/data_{}2.csv".format(basename),"status.csv","score_109.csv")
-        
+        elif basename[:3]=='wks':
+                expNetExam("./export/data_{}.csv".format(basename),xlsfile)        
  
 if __name__=='__main__':
         main()
