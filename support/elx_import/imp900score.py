@@ -1,7 +1,7 @@
 import xlrd
 import csv
 import os,uuid
-import sys 
+import sys ,datetime
 from progressbar import printProgress
 import pandas as pd
 import numpy as np
@@ -470,7 +470,7 @@ def expStatus2(csvname,statuscsv,scorecsv):
 def expNetExam(csvname,xlsfile):
        #filename is format that is name such as elc90* or signup90* or score90* 
        #deal with numeric
-        studict=getstuinfoDic()
+        scoredic=getscoreDic()
         col_elc=['kssj','wkkm','cjdm','xh','dwdm']
         batlist={"秋季":"09","春季":"03","秋":"09","春":"03"}
         examunitlist={"中央":"1","省":"2"}
@@ -511,7 +511,7 @@ def expNetExam(csvname,xlsfile):
                         for rownum in lins:
                  
                                 bvalid=True                
-                                csvlist=["1" for x in range(6)]
+                                csvlist=["1" for x in range(7)]
                                 #all conver to string and remove return char and             
                                 rowlist =[str(item).replace('\n',' ').replace(',',' ').strip() for item in sh.row_values(rownum)  ]
                                 
@@ -524,11 +524,13 @@ def expNetExam(csvname,xlsfile):
                                 else:
                                         #dic = eval(stuinfo[1])
                                         #print("{},{}".format(rowlist[0],is_number(rowlist[0])))
+                                        #csvlist[0]                        SN
                                         csvlist[1]=removelast(rowlist[0]) #unifBatchCode
                                         csvlist[2]=removelast(rowlist[1]) #subjectcode
                                         csvlist[3]=removelast(rowlist[3])  #studentcode
-                                        csvlist[4]=removelast(rowlist[2]) #scorecode
-                                        #csvlist[5] #IsRecord
+                                        csvlist[4]=scoredic[rowlist[2]]  #score
+                                        csvlist[5]=removelast(rowlist[2]) #scorecode
+                                        #csvlist[6] #IsRecord
                                        
                                 iTotal+=1
                                 if bvalid==True:
@@ -536,27 +538,132 @@ def expNetExam(csvname,xlsfile):
                                         wr.writerow(csvlist)
                         print("{}:Totla{},valid{}".format(sh.name,iTotal,iValid))
         csvfile.close()        
- 
+#导出指导性专业规则模块课程
+def expModuleCourse(csvname,xlsfile):
+               #filename is format that is name such as modcourse
+               #deal with numeric
+                #文件列名
+                col_head=['规则号','模块名','课程id','课程名称','课程类型','课程性质','学分','建议开设学期','考试单位','定义学校','互斥课标志','相似课标志']
+                #模块名
+                modulecodelist={"课程开放":"00","公共基础课":"01","专业基础课":"02","专业课":"03","通识课":"04","专业拓展课":"05","综合实践":"06","特色课":"07","专业核心课一":"08","公共英语课":"09","职业核心课":"10","专业/职业延展课":"11","通识文化课":"12","通用技术课":"13","职业延展课":"14","专业核心课":"15","思想政治课":"16","实践课":"17","公共基础课一":"20","公共基础课二":"21","专业基础课一":"22","专业基础课二":"23","专业课一":"24","专业课二":"25","专业课三":"26","通识课二":"27","专业拓展课一":"28","专业拓展课二":"29","职业核心课一":"30","实践课一":"31","职业核心课二":"32","职业核心课三":"33","职业核心课四":"34","职业核心课五":"35","专业核心课二":"36","专业方向课":"37","专业限选课":"38","专业选修课":"39","证书课":"40","二外课":"50","通识素质课程":"60","专业能力课程":"61","职业技能课程":"62","补修课及规则外选课":"99"}
+                #课程类型
+                coursenaturelist={"必修":"1","选修":"3"}
+                #课程单位
+                orgcodelist={"中央广播电视大学":"010","国家开放大学邮政学院":"909"}
+                
+                #考试单位性质
+                examunitlist={"中央":"1","省":"2"}
+                #是否互斥
+                iflist={"无":"0","有":"１"}
+                
+                rnNum =[0,1,2,3,4,5] # deal \n
+                intnum=[11,12,13,14,15,16,17,23,24] # deal is int data type
+                blknum=[18,19,20,21,22] 
+            
+            
+                with open(csvname,'w',newline='',encoding='gb2312') as csvfile:
+                        wr =  csv.writer(csvfile,quoting=csv.QUOTE_NONE,quotechar='',escapechar='\\')
+                        wb = xlrd.open_workbook(xlsfile)
+                        
+                
+                
+                        for sh in wb.sheets():
+                                if sh.nrows==0 :
+                                        print("{} is empty".format(sh.name))
+                                        continue
+                                # deal with mutilplines
+                                # from the second line 
+                                # is columns order is current?
+                                bColOrder=True
+                                rowcollist=sh.row_values(0)
+                                for i in range(len(col_head)):
+                                        if str(rowcollist[i]).lower() not in str(col_head[i]).split(','):
+                                                bColOrder=False
+                                                print ("sheet:{} {}'s number:{} column,{} is not match {}".format(xlsfile,sh.name,i,col_head[i],rowcollist[i]))
+                                                break
+                                if bColOrder==False:# if Column's order is not current then break and get next sheet
+                                        continue
+                      
+                                lins = [x for x in range(1,sh.nrows)]
+                                iTotal=0
+                                iValid=0
+                                for rownum in lins:
+                         
+                                        bvalid=True                
+                                        csvlist=["" for x in range(17)]
+                                        #all conver to string and remove return char and             
+                                        rowlist =[str(item).replace('\n',' ').replace(',',' ').strip() for item in sh.row_values(rownum)  ]
+                                        
+                                        #get info by redis
+                                        #stuinfo = getRedis(rowlist[0])
+                                        # find studentcode in studict 
+                                        if  removelast(rowlist[1]) not in modulecodelist.keys():#判断模块号是否存在#removelast(rowlist[0]) not in studict.keys():
+                                                bvalid=False
+                                                print("{}:{},{},{}, no find it's modulecode".format(sh.name,rownum,rowlist[0],rowlist[1]))
+                                        else:
+                                                #dic = eval(stuinfo[1])
+                                                #print("{},{}".format(rowlist[0],is_number(rowlist[0])))
+                                                csvlist[0]= uuid.uuid4()          #SN
+                                                csvlist[1]=modulecodelist[removelast(rowlist[1])] #ModuleCode
+                                                csvlist[2]="20{}".format(removelast(rowlist[0][:4])) #Batchcode
+                                                csvlist[3]=removelast(rowlist[0])  #tcpcode
+                                                csvlist[4]=removelast(rowlist[2])  #courseid
+                                                csvlist[5]=removelast(rowlist[3]) #coursename
+                                                csvlist[6]=coursenaturelist[removelast(rowlist[5])]        #coursenature
+                                                csvlist[7]=orgcodelist[removelast(rowlist[9])] #orgcode
+                                                intCredid=0
+                                                if is_number(rowlist[6]):
+                                                        intCredid='%d'%float(rowlist[6])
+                                                else:
+                                                        print("credit error line:{}".format(rownum+1))
+                                                csvlist[8]=intCredid #credit
+                                                Hour=''
+                                                csvlist[9]=Hour  #Hour
+                                                intSemester=0
+                                                if is_number(rowlist[7]):
+                                                        intSemester='%d'%float(rowlist[7])
+                                                else:
+                                                        print("OpenSemester error line{}".format(rownum+1))
+                                                csvlist[10]=intSemester
+                                                csvlist[11]=examunitlist[rowlist[8]]
+                                                csvlist[12]=0 #isExtendedcourse
+                                                csvlist[13]=0 #isdegreecourse
+                                                csvlist[14]=iflist[removelast(rowlist[11])] #issimilar
+                                                csvlist[15]=iflist[removelast(rowlist[10])] #ismutex
+                                                csvlist[16]=str(datetime.date.today())
+                                                        
+                                                        
+                                                
+                                               
+                                        iTotal+=1
+                                        if bvalid==True:
+                                                iValid+=1
+                                                wr.writerow(csvlist)
+                                print("{}:Totla{},valid{}".format(sh.name,iTotal,iValid))
+                csvfile.close()    
+
 def main():
         global re
         xlsfile = sys.argv[1]
         base= os.path.basename(xlsfile)
         basename=os.path.splitext(base)[0]
-        if basename[:3]=='elc':
+        if basename[:3]=='elc':           #选课数据
                 expElc("./export/data_{}.csv".format(basename),xlsfile)
-        elif basename[:6]=='score4':
+        elif basename[:6]=='score4': #add new composescore
                 expScore("./export/data_{}.csv".format(basename),xlsfile,'4')
-        elif basename[:6]=='score5':
+        elif basename[:6]=='score5': #add new composescore
                 expScore("./export/data_{}.csv".format(basename),xlsfile,'5')    
-        elif basename[:7]=='signup4':
+        elif basename[:7]=='signup4': #add new signup 
                 expSignup("./export/data_{}.csv".format(basename),xlsfile,'4')
-        elif basename[:7]=='signup5':
+        elif basename[:7]=='signup5': # add new in eas_elc_signup
                 expSignup("./export/data_{}.csv".format(basename),xlsfile,'5')
         elif basename[:6]=='status':
                 #expStatus("data_{}.csv".format(basename),xlsfile)
                 expStatus2("./export/data_{}2.csv".format(basename),"status.csv","score_109.csv")
         elif basename[:3]=='wks':
                 expNetExam("./export/data_{}.csv".format(basename),xlsfile)        
+        elif basename[:9]=='newcourse':  #add new course in eas_tcp_modulecourse
+                expModuleCourse("./export/data_{}.csv".format(basename),xlsfile)        
  
 if __name__=='__main__':
         main()
