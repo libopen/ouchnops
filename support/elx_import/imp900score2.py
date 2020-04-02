@@ -548,7 +548,7 @@ class SignElxRow(baseElxRow):  # subclass of baseElxRow
 class StudentElxRow(baseElxRow):  # subclass of baseElxRow
          #### tablecol_name,excel_colname,cell_name,ismatch(is exists in excel),cellprocess,isExport 
          def __init__(self):
-                tu=[('StudentID','StudentID',tools.newGUID(),False,'',True),
+                tu=[('StudentID','StudentID','',False,'',True),
                     ('StudentCode','学号','',True,'',True),
                     ('Name','姓名','',True,'',True),
                     ('State','State','1',False,'',True),
@@ -616,6 +616,53 @@ class StudentElxRow(baseElxRow):  # subclass of baseElxRow
                      return False    
                                   
              return bFind
+# dynamic export ,you can change 'tu' in the  section of __init__ 
+class DynamicElxRow(baseElxRow):  # subclass of baseElxRow
+         #### tablecol_name,excel_colname,cell_name,ismatch(is exists in excel),cellprocess,isExport 
+         def __init__(self):
+                tu=[
+                    ('StudentCode','学号'  ,'',True,'',True),
+                    ('Name'       ,'姓名'  ,'',True,'',True),
+                    ('PaperCode'  ,'试卷号','',True,'',True),
+                    ('CourseID'   ,'课程ID','',True,'',True),
+                    ('Composescore','成绩更正','',True,'',True)]
+
+                # conditional expression
+                self.init(tu) 
+
+         def init(self,configlist):
+              super(DynamicElxRow,self).init(configlist)
+              
+         def getcsvlist(self,elxrow):
+             # rewrite some columns cell vaue 
+             # throught studentdict find studentid,spycod
+             # subclass call parent class method
+             bFind = True
+             super(DynamicElxRow,self).getcsvlist(elxrow)
+             #cell_student            =self.getCellByname("STUDENTCODE")
+             #dictkey = cell_student.cellvalue
+             # get current info from dict
+             #currentStuInfo,bFind = self._studentDict.getRow(dictkey)
+             # don't identify studentcode
+             
+#             if bFind == False:
+#                print("{},studentcode not exist in stuinfo.txt".format(dictkey))
+#             else:
+#                #currentStuInfo['SEGMENTCODE']=currentStuInfo['LEARNINGCENTERCODE'][:3]
+#                #currentStuInfo['COLLEGECODE']=currentStuInfo['LEARNINGCENTERCODE'][:5]
+#                #import pdb;pdb.set_trace()    
+#                # find info from the studentDict 
+#                try:
+#                    for cell in self._celllist:
+#                          if  cell.table_colname.lower() in ('studentid'):
+#                               cell.cellvalue = tools.newGUID()
+##                          if  cell.table_colname.lower() in ('createdate'):
+##                               cell.cellvalue = createdate()
+#                   
+#                except:
+#                     return False    
+                                  
+             return bFind
 
 #### class used for other excel that has not standard format column
 class NonStandElxRow(baseElxRow):
@@ -661,6 +708,8 @@ class ouchnExport:
                    objRow = ComposeElxRow()
               elif self._appname == 'kwstudent':
                    objRow = StudentElxRow()
+              elif self._appname == 'dynamic':
+                   objRow = DynamicElxRow()
               else:  #call export excel file used by NonStandElxRow
                    objRow = NonStandElxRow()
                    firstrow=0
@@ -698,11 +747,12 @@ def main():
         patternPara['-C'] = 'compose'
         patternPara['-O'] = 'other'
         patternPara['-KS'] = 'kwstudent'
+        patternPara['-D'] = 'dynamic'
         pattern = str(sys.argv[2]).upper()
         
         xlsfile = sys.argv[1]
         exp = ouchnExport(xlsfile,patternPara[pattern])
-        exp.export2csv()
+        exp.export2csv() 
         
                 
  
